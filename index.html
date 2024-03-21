@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style type="text/css">
+* {
+	margin:0;
+	padding:0;
+	box-sizing:border-box;
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #333;
+    font-size: 15px; /* Body font size set to 15px */
+}
+
+.topper {
+	background-color:#111;
+	padding:1em;
+	text-align:center;
+}
+
+.img-block {
+	display:inline-block;
+	width:9.5em;
+}
+
+.img-block img {
+	display:block;
+	width:100%;
+	height:auto;
+}
+
+.outer {
+	margin:0 2.5em;
+}
+
+.case {
+  display: flex;
+  padding-top:4em;
+  width:900px;
+  margin:0 auto;
+}
+
+.ipt-1 {
+  width: 300px; /* Width of the left column */
+}
+
+.ipt-2 {
+  width: 600px; /* Width of the right column */
+}
+
+.ipt-box {
+	padding-right:2em;
+}
+
+.ipt-box + .ipt-box {
+  padding-top: 2.5em; /* Add padding for better spacing */
+}
+
+.ipt-name {
+	margin-bottom:1em;
+	position:relative;
+}
+
+.ipt-name:before {
+	position:absolute;
+	display:block;
+	right:0;
+	top:0.85em;
+	width:3em;
+	content:'.png';
+	text-align:center;
+}
+
+.ipt-name input {
+	padding:0.8em 3em 0.8em 0.8em;
+	background-color:#fff;
+	color:#333;
+	width:100%;
+	border:1px solid #fff;
+	border-radius: 5px;
+	font-size:1em;
+}
+
+#imageCanvas {
+  width: 100%; /* Fill the available width in the right column */
+}
+
+.btn {
+	display: block;
+	font-size:1em;
+    padding: 0.8em 0;
+    border: 1px solid #fff;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.5s;
+    text-align:center;
+    width:100%;
+}
+
+.btn:hover {
+	background-color:#ddd;
+}
+
+.btn.clicked {
+	background-color:#a9a9a9;
+	border-color:#a9a9a9;
+}
+
+.btn.clicked:hover {
+	background-color:#979595;
+}
+
+/* Hide the default file input */
+.ipt-1 input[type="file"] {
+    display: none;
+}
+
+/* Style for the custom file upload button */
+.custom-file-upload {
+    position: relative; /* Required for the pseudo-element */
+    overflow: hidden; /* Hide the overflow of the pseudo-element */
+}
+
+#instructionBox p, #repeatBox p {
+	margin-top: 0.8em;
+	color:#fff;
+	font-size:1em;
+	line-height:1.5;
+}
+</style>
+<title>Image Editor</title>
+</head>
+<body>
+
+<div class="topper">
+	<span class="img-block"><img src="logo.png" /></span>
+</div>
+
+<div class="outer">
+
+<div class="case">
+    <div class="ipt-1">
+    	<div class="ipt-box">
+        	<label for="uploadInput" class="custom-file-upload btn" id="uploadImg">Upload Image</label>
+        	<input type="file" id="uploadInput" accept="image/*">
+        	<div id="instructionBox">
+        		<p>
+        		Dimensions: 1200px W x 720px H
+        		</p>
+        	</div>
+        	<div id="repeatBox" style="display:none;">
+        		<p>
+        		Select another image to upload
+        		</p>
+        	</div>
+        </div>
+        <div class="ipt-box" id="downloadBtnCase" style="display:none;">
+        	<div class="ipt-name">
+        		<input id="imageName" type="text" placeholder="file_name" class="give-a-name" />
+        	</div>
+       		<button id="downloadBtn" class="btn">Download Image</button>
+    	</div>
+    </div>
+    
+    <div class="ipt-2">
+        <canvas id="imageCanvas" width="600" height="360"></canvas>
+    </div>
+</div>
+
+</div>
+
+<script>
+const imageCanvas = document.getElementById('imageCanvas');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadBtnCase = document.getElementById('downloadBtnCase');
+const instructionBox = document.getElementById('instructionBox');
+const uploadImg = document.getElementById('uploadImg');
+const repeatBox = document.getElementById('repeatBox');
+const ctx = imageCanvas.getContext('2d');
+
+// canvas
+const canvasWidth = 1200;
+const canvasHeight = 720;
+imageCanvas.width = canvasWidth;
+imageCanvas.height = canvasHeight;
+ctx.fillStyle = '#dee7f1';
+ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+const transparentLayer = new Image();
+transparentLayer.onload = function() {
+  ctx.drawImage(transparentLayer, 0, 0, canvasWidth, canvasHeight);
+};
+transparentLayer.src = 'overlay.png';
+
+// upload
+const uploadInput = document.getElementById('uploadInput');
+
+uploadInput.addEventListener('change', function(event) {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(event) {
+    const uploadedImage = new Image();
+    uploadedImage.onload = function() {
+      // canvas
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // resize uploaded image
+      const scaleFactor = canvasWidth / uploadedImage.width;
+      const scaledWidth = canvasWidth;
+      const scaledHeight = uploadedImage.height * scaleFactor;
+      ctx.drawImage(uploadedImage, 0, 0, scaledWidth, scaledHeight);
+
+      // if height is smaller
+      if (scaledHeight < canvasHeight) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, scaledHeight, canvasWidth, canvasHeight - scaledHeight);
+      }
+
+      // transparent layer
+      ctx.drawImage(transparentLayer, 0, 0, canvasWidth, canvasHeight);
+      downloadBtnCase.style.display = 'block';
+      instructionBox.style.display = 'none';
+
+      // after click
+      uploadImg.classList.add('clicked');
+      repeatBox.style.display = 'block';
+    };
+    uploadedImage.src = event.target.result;
+  };
+
+  if (file) {
+    reader.readAsDataURL(file);
+  }
+});
+
+downloadBtnCase.addEventListener('click', function(event) {
+  event.preventDefault();
+
+  if (event.target.id === 'downloadBtn') {
+    const imageSrc = imageCanvas.toDataURL('image/png');
+    const imageName = document.getElementById('imageName').value;
+    const fileName = imageName ? `${imageName}.png` : 'you_forgot_to_add_a_file_name.png';
+    const downloadLink = document.createElement('a');
+    downloadLink.href = imageSrc;
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+});
+</script>
+</body>
+</html>
